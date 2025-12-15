@@ -44,8 +44,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.github.wulfaz.android.openkarotz.R;
 import com.github.wulfaz.android.openkarotz.adapter.KarotzDeviceAdapter;
 import com.github.wulfaz.android.openkarotz.database.KarotzDevice;
+import com.github.wulfaz.android.openkarotz.karotz.OpenKarotz;
 import com.github.wulfaz.android.openkarotz.viewmodel.DeviceManagementViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.List;
 
 /**
  * Activity for managing Karotz devices (list, add, edit, delete).
@@ -95,7 +98,26 @@ public class DeviceManagementActivity extends AppCompatActivity {
         
         viewModel.getAllDevices().observe(this, devices -> {
             adapter.setDevices(devices);
+            checkDevicesOnlineStatus(devices);
         });
+    }
+
+    private void checkDevicesOnlineStatus(List<KarotzDevice> devices) {
+        if (devices == null) return;
+
+        for (KarotzDevice device : devices) {
+            new Thread(() -> {
+                OpenKarotz karotz = new OpenKarotz(device.getHostname());
+                boolean isOnline = karotz.isOnline();
+
+                // Update DB
+                runOnUiThread(() -> {
+                    if (device.isOnline() != isOnline) {
+                        viewModel.updateOnlineStatus(device.getId(), isOnline);
+                    }
+                });
+            }).start();
+        }
     }
 
     private void setupRecyclerView() {

@@ -19,11 +19,6 @@
         android:orderInCategory="90"
         app:showAsAction="ifRoom"
         android:title="@string/action_settings"/>
-    <item
-        android:id="@+id/action_about"
-        android:icon="@android:drawable/ic_menu_help"
-        android:orderInCategory="99"
-        app:showAsAction="never"
-        android:title="@string/action_about"/>
+
 
 </menu>

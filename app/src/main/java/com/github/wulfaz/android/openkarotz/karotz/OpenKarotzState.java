@@ -59,14 +59,29 @@ public class OpenKarotzState {
         // Answer:
         // {"version":"200","ears_disabled":"0","sleep":"0","sleep_time":"0","led_color":"0000FF","led_pulse":"1","tts_cache_size":"4","usb_free_space":"-1","karotz_free_space":"148.4M","eth_mac":"00:00:00:00:00:00","wlan_mac":"01:23:45:67:89:AB","nb_tags":"4","nb_moods":"305","nb_sounds":"14","nb_stories":"0","karotz_percent_used_space":"37","usb_percent_used_space":""}
         // {"version":"210","patch":"310","ears_disabled":"0","sleep":"1","sleep_time":"1754001236","led_color":"000000","led_pulse":"0","tts_cache_size":"1","usb_free_space":"-1","karotz_free_space":"147.3M","eth_mac":"00:00:00:00:00:00","wlan_mac":"01:23:45:67:89:AB","nb_tags":"6","nb_moods":"305","nb_sounds":"14","nb_stories":"0","karotz_percent_used_space":"37","usb_percent_used_space":"","data_dir":"/usr/openkarotz"}
+
+        // Correction : Patch is not always available (I've got v 201 but no patch)
+        // {"version":"201", "ears_disabled":"0", "sleep":"0","sleep_time":"0","led_color":"FFC0CB","led_pulse":"1","tts_cache_size":"0",
+        // "usb_free_space":"-1","karotz_free_space":"148.6M",
+        // "eth_mac":"00:00:00:00:00:00",
+        // "wlan_mac":"00:0E:8E:2C:BD:EE","nb_tags":"1",
+        // "nb_moods":"305","nb_sounds":"14","nb_stories":"0","karotz_percent_used_space":"36","usb_percent_used_space":"","data_dir":"/usr/openkarotz"}
         if (json != null) {
             try {
                 JSONObject jo = new JSONObject(json);
-                version = new IKarotz.KarotzVersion(jo.getString(KEY_VERSION), jo.getString(KEY_PATCH));
+                version = new IKarotz.KarotzVersion(jo.optString(KEY_VERSION, "undefined"), jo.optString(KEY_PATCH, "undefined"));
                 status = ("1".equals(jo.getString(KEY_SLEEP)) ? KarotzStatus.SLEEPING : KarotzStatus.AWAKE);
                 ledColor = Color.parseColor("#" + jo.getString(KEY_LED_COLOR));
-                pulsing = ("1".equals(jo.getString(KEY_LED_PULSE)));
+                pulsing = ("1".equals(jo.optString(KEY_LED_PULSE, "0")));
                 earMode = ("1".equals(jo.getString(KEY_EARS_DISABLED)) ? EarMode.DISABLED : EarMode.ENABLED);
+                // System info
+                freeSpace = jo.optString(KEY_KAROTZ_FREE_SPACE, "-");
+                percentUsed = jo.optString(KEY_KAROTZ_PERCENT_USED, "-");
+                wlanMac = jo.optString(KEY_WLAN_MAC, "-");
+                nbMoods = jo.optString(KEY_NB_MOODS, "-");
+                nbSounds = jo.optString(KEY_NB_SOUNDS, "-");
+                nbTags = jo.optString(KEY_NB_TAGS, "-");
+
             } catch (JSONException e) {
                 e.printStackTrace();
                 Log.e(LOG_TAG, "Cannot parse status answer: " + json);
@@ -128,6 +143,30 @@ public class OpenKarotzState {
      */
     public IKarotz.KarotzVersion getVersion() {
         return version;
+    }
+
+    public String getFreeSpace() {
+        return freeSpace;
+    }
+
+    public String getPercentUsed() {
+        return percentUsed;
+    }
+
+    public String getWlanMac() {
+        return wlanMac;
+    }
+
+    public String getNbMoods() {
+        return nbMoods;
+    }
+
+    public String getNbSounds() {
+        return nbSounds;
+    }
+
+    public String getNbTags() {
+        return nbTags;
     }
 
     /**
@@ -212,6 +251,7 @@ public class OpenKarotzState {
     }
 
 
+    // Version + patch
     private IKarotz.KarotzVersion version = null;
 
     private KarotzStatus status = KarotzStatus.UNKNOWN;
@@ -222,6 +262,13 @@ public class OpenKarotzState {
     private EarMode earMode = EarMode.ENABLED;
     private EarPosition leftEarPosition = EarPosition.POSITION_1;
     private EarPosition rightEarPosition = EarPosition.POSITION_1;
+
+    private String freeSpace = "";
+    private String percentUsed = "";
+    private String wlanMac = "";
+    private String nbMoods = "";
+    private String nbSounds = "";
+    private String nbTags = "";
 
     private static final String KEY_VERSION = "version";
 
@@ -236,4 +283,11 @@ public class OpenKarotzState {
     private static final String KEY_EARS_DISABLED = "ears_disabled";
 
     private static final String LOG_TAG = OpenKarotzState.class.getSimpleName();
+
+    private static final String KEY_KAROTZ_FREE_SPACE = "karotz_free_space";
+    private static final String KEY_KAROTZ_PERCENT_USED = "karotz_percent_used_space";
+    private static final String KEY_WLAN_MAC = "wlan_mac";
+    private static final String KEY_NB_MOODS = "nb_moods";
+    private static final String KEY_NB_SOUNDS = "nb_sounds";
+    private static final String KEY_NB_TAGS = "nb_tags";
 }

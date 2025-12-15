@@ -1,31 +1,3 @@
-/*
- * OpenKarotz-Android
- * http://github.com/hobbe/OpenKarotz-Android
- *
- * Copyright (c) 2014 Olivier Bagot (http://github.com/hobbe)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * http://opensource.org/licenses/MIT
- *
- */
-
 package com.github.wulfaz.android.openkarotz.fragment;
 
 import android.app.Activity;
@@ -44,10 +16,14 @@ import com.github.wulfaz.android.openkarotz.R;
 import com.github.wulfaz.android.openkarotz.activity.MainActivity;
 import com.github.wulfaz.android.openkarotz.karotz.IKarotz;
 import com.github.wulfaz.android.openkarotz.karotz.IKarotz.KarotzStatus;
+import com.github.wulfaz.android.openkarotz.karotz.Karotz;
+import com.github.wulfaz.android.openkarotz.karotz.OpenKarotzState;
 import com.github.wulfaz.android.openkarotz.task.GetStatusAsyncTask;
 import com.github.wulfaz.android.openkarotz.task.GetVersionAsyncTask;
 import com.github.wulfaz.android.openkarotz.task.SleepAsyncTask;
 import com.github.wulfaz.android.openkarotz.task.WakeupAsyncTask;
+
+import com.github.wulfaz.android.openkarotz.karotz.OpenKarotz;
 
 /**
  * System fragment.
@@ -66,8 +42,11 @@ public class SystemFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
 
         if (savedInstanceState == null) {
-            new GetStatusTask(getActivity()).execute();
+            /*new GetStatusTask(getActivity()).execute();
             new GetVersionTask(getActivity()).execute();
+            new GetSystemInfoTask(getActivity()).execute();*/
+
+            new GetSystemInfoTask(getActivity()).execute();
         }
     }
 
@@ -114,17 +93,29 @@ public class SystemFragment extends Fragment {
         versionTextView.setText("-");
     }
 
-    private void initializePatchTextView(View view) {
-        patchTextView = view.findViewById(R.id.textPatch);
-        patchTextView.setText("-");
+    private void initializeSystemInfoViews(View view) {
+        storageTextView = view.findViewById(R.id.textStorage);
+        storageTextView.setText("-");
+
+        wifiMacTextView = view.findViewById(R.id.textWifiMac);
+        wifiMacTextView.setText("-");
+
+        moodsTextView = view.findViewById(R.id.textMoods);
+        moodsTextView.setText("-");
+
+        soundsTextView = view.findViewById(R.id.textSounds);
+        soundsTextView.setText("-");
+
+        tagsTextView = view.findViewById(R.id.textTags);
+        tagsTextView.setText("-");
     }
 
     private void initializeView(View view) {
         // Version
         initializeVersionTextView(view);
 
-        // Patch
-        initializePatchTextView(view);
+        // System info
+        initializeSystemInfoViews(view);
 
         // On/Off status
         initializeOnOffSwitch(view);
@@ -161,7 +152,49 @@ public class SystemFragment extends Fragment {
             } else {
                 IKarotz.KarotzVersion version = (IKarotz.KarotzVersion) result;
                 versionTextView.setText(version.getVersion());
-                patchTextView.setText(version.getPatch());
+            }
+        }
+    }
+
+    private class GetSystemInfoTask extends GetStatusAsyncTask {
+
+        public GetSystemInfoTask(Activity activity) {
+            super(activity);
+        }
+
+        @Override
+        public void onPostExecute(Object result) {
+            // Don't call super - we don't want the dialog handling
+            // super.onPostExecute(result);
+
+            // Get extended info from Karotz
+            try {
+                OpenKarotz karotz = (OpenKarotz) Karotz.getInstance();
+
+                if (karotz != null) {
+                    OpenKarotzState state = karotz.getState();
+
+                    if (state != null) {
+                        // Status
+                        KarotzStatus status = state.getStatus();
+                        onOffSwitch.setChecked(status != null && status.isAwake());
+
+                        // Version
+                        IKarotz.KarotzVersion version = state.getVersion();
+                        if (version != null) {
+                            versionTextView.setText(version.getVersion());
+                        }
+
+                        // System info
+                        storageTextView.setText(state.getFreeSpace() + " free (" + state.getPercentUsed() + "% used)");
+                        wifiMacTextView.setText(state.getWlanMac());
+                        moodsTextView.setText(state.getNbMoods());
+                        soundsTextView.setText(state.getNbSounds());
+                        tagsTextView.setText(state.getNbTags());
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Error getting system info: " + e.getMessage());
             }
         }
     }
@@ -231,8 +264,11 @@ public class SystemFragment extends Fragment {
     private static OnOffSwitchCheckedChangeListener onOffSwitchCheckedChangeListener = null;
 
     private static TextView versionTextView = null;
-
-    private static TextView patchTextView = null;
+    private static TextView storageTextView = null;
+    private static TextView wifiMacTextView = null;
+    private static TextView moodsTextView = null;
+    private static TextView soundsTextView = null;
+    private static TextView tagsTextView = null;
 
     private static final String LOG_TAG = SystemFragment.class.getSimpleName();
 }

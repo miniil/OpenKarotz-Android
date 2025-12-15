@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="fill_parent"
-    android:layout_height="wrap_content" >
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
 
     <GridLayout
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:alignmentMode="alignBounds"
         android:columnCount="2"
@@ -12,8 +12,9 @@
         android:paddingLeft="@dimen/activity_horizontal_margin"
         android:paddingRight="@dimen/activity_horizontal_margin"
         android:paddingTop="@dimen/activity_vertical_margin"
-        android:useDefaultMargins="false" >
+        android:useDefaultMargins="false">
 
+        <!-- Sleep/Wake -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -27,6 +28,7 @@
             android:textOff="@string/off_label"
             android:textOn="@string/on_label" />
 
+        <!-- Version -->
         <TextView
             android:padding="4dp"
             android:text="@string/version_label" />
@@ -37,15 +39,61 @@
             android:padding="4dp"
             android:text="" />
 
+        <!-- Storage -->
         <TextView
             android:padding="4dp"
-            android:text="@string/patch_label" />
+            android:text="Storage" />
 
         <TextView
-            android:id="@+id/textPatch"
+            android:id="@+id/textStorage"
             android:layout_gravity="right"
             android:padding="4dp"
             android:text="" />
+
+        <!-- WiFi MAC -->
+        <TextView
+            android:padding="4dp"
+            android:text="WiFi MAC" />
+
+        <TextView
+            android:id="@+id/textWifiMac"
+            android:layout_gravity="right"
+            android:padding="4dp"
+            android:text="" />
+
+        <!-- Moods -->
+        <TextView
+            android:padding="4dp"
+            android:text="Moods" />
+
+        <TextView
+            android:id="@+id/textMoods"
+            android:layout_gravity="right"
+            android:padding="4dp"
+            android:text="" />
+
+        <!-- Sounds -->
+        <TextView
+            android:padding="4dp"
+            android:text="Sounds" />
+
+        <TextView
+            android:id="@+id/textSounds"
+            android:layout_gravity="right"
+            android:padding="4dp"
+            android:text="" />
+
+        <!-- RFID Tags -->
+        <TextView
+            android:padding="4dp"
+            android:text="RFID Tags" />
+
+        <TextView
+            android:id="@+id/textTags"
+            android:layout_gravity="right"
+            android:padding="4dp"
+            android:text="" />
+
     </GridLayout>
 
 </ScrollView>

@@ -55,4 +55,68 @@
     <string name="karotz_host_pref_title">Adresse du Karotz</string>
     <string name="karotz_host_pref_summary">Nom d\'hôte ou adresse IP :</string>
 
+    <!-- TTS Page -->
+    <string name="page_tts">TTS</string>
+    <string name="tts_voice_label">Voix</string>
+    <string name="tts_text_label">Texte</string>
+    <string name="tts_text_hint">Entrez votre texte ici...</string>
+    <string name="tts_speak_button">Parler</string>
+    <string name="tts_speaking">En train de parler...</string>
+    <string name="tts_success">Parle!</string>
+    <string name="tts_error_empty">Veuillez entrer du texte.</string>
+    <string name="tts_error_no_voices">Aucune voix disponible</string>
+    <string name="tts_error_no_voice_selected">Veuillez sélectionner une voix</string>
+    <string name="tts_error_loading_voices">Erreur de chargement des voix</string>
+    <string name="tts_error_speaking">Erreur d\'appel pour parler</string>
+
+    <!-- Home Page Random Buttons -->
+    <string name="home_random_mood">Humeur aléatoire</string>
+    <string name="home_random_ears">Oreilles aléatoires</string>
+    <string name="home_random_mood_success">Humeur aléatoire en cours!</string>
+    <string name="home_random_mood_error">Erreur Humeur aléatoire.</string>
+    <string name="home_random_ears_success">Oreilles aléatoires en cours!</string>
+    <string name="home_random_ears_error">Erreur Oreilles aléatoires.</string>
+
+    <!-- Color Picker -->
+    <string name="color_preview_label">Prévisualisation</string>
+    <string name="color_red_label">Rouge</string>
+    <string name="color_green_label">Vert</string>
+    <string name="color_blue_label">Bleu</string>
+    <string name="color_apply_button">Appliquer</string>
+    <string name="color_quick_label">Rapide</string>
+    <string name="color_applied">Couleur appliquée!</string>
+
+    <!-- Radio Page -->
+    <string name="radio_no_stations">Pas de station radio trouvée.</string>
+    <string name="radio_icon_desc">Icone Radio</string>
+    <string name="radio_play_desc">Ecouter</string>
+
+    <!-- About Page -->
+    <string name="about_app_name">Karotz Controller</string>
+    <string name="about_version">Version 1.0</string>
+    <string name="about_description">Control your OpenKarotz smart rabbit from your Android device. Change LED colors, move ears, play radios, use text-to-speech, and more!</string>
+
+    <string name="about_developer_title">Developer</string>
+    <string name="about_developer_name">miniil</string>
+    <string name="about_website">www.miniil.be</string>
+
+    <string name="about_credits_title">Credits</string>
+    <string name="about_credits_original">Based on the original OpenKarotz-Android project by:</string>
+    <string name="about_original_author">Olivier Bagot (hobbe)</string>
+    <string name="about_openkarotz_link">OpenKarotz Project</string>
+    <string name="about_credits_ai">Development assisted by Claude AI (Anthropic)</string>
+
+    <string name="about_license_title">License</string>
+    <string name="about_license">This software is released under the MIT License. You are free to use, modify, and distribute this software.</string>
+
+    <string name="about_contact_button">Contact</string>
+    <string name="about_website_button">Visit Website</string>
+    <string name="about_support_button">Support This Project</string>
+
+    <string name="about_copyright">© 2025 miniil. All rights reserved.</string>
+
+    <string name="about_email_subject">Karotz Controller - Contact</string>
+    <string name="about_email_chooser">Send email…</string>
+
+
 </resources>

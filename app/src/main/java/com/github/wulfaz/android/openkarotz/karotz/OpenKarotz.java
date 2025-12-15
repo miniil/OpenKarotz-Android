@@ -422,6 +422,29 @@ public class OpenKarotz implements IKarotz {
         return (state == null || state.getStatus().isOffline());
     }
 
+    /**
+     * Simple connectivity check - Just verify we get a response from api (json)
+     */
+    public boolean isOnline() {
+        try {
+            URL url = newAPIURL(api, "/status");
+            String result = NetUtils.downloadUrl(url);
+            return result != null && result.trim().startsWith("{");
+        }
+        catch (Exception e) {
+            Log.d(LOG_TAG, "Karotz is not online : " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get the current state.
+     * @return the OpenKarotz state
+     */
+    public OpenKarotzState getState() {
+        return state;
+    }
+
     private boolean isSleeping() {
         return (state != null && state.getStatus().isSleeping());
     }
@@ -449,6 +472,116 @@ public class OpenKarotz implements IKarotz {
         return new URL(url, CGI_BIN + apiPath);
     }
 
+
+    /**
+     * Get the list of available TTS voices.
+     * @return JSON string with voices array, or null on error
+     * @throws IOException if network error
+     */
+    public String getVoiceList() throws IOException {
+        URL url = newAPIURL(api, "/voice_list");
+        Log.d(LOG_TAG, url.toString());
+
+        String result = NetUtils.downloadUrl(url);
+        Log.d(LOG_TAG, result);
+
+        return result;
+    }
+
+    /**
+     * Send text to speech request.
+     * @param voiceId the voice ID (1-88)
+     * @param text the text to speak (max 200 chars)
+     * @return true if successful
+     * @throws IOException if network error
+     */
+    public boolean tts(String voiceId, String text) throws IOException {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+
+        // URL encode the text
+        String encodedText;
+        try {
+            encodedText = java.net.URLEncoder.encode(text, "UTF-8");
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error encoding text: " + e.getMessage());
+            return false;
+        }
+
+        // Add nocache parameter with current timestamp to avoid caching
+        long nocache = System.currentTimeMillis();
+
+        URL url = newAPIURL(api, "/tts?voice=" + voiceId + "&text=" + encodedText + "&nocache=" + nocache);
+        Log.d(LOG_TAG, url.toString());
+
+        String result = NetUtils.downloadUrl(url);
+        Log.d(LOG_TAG, result);
+
+        // Answer: {"return": true, "played": true, "cache": false, "voicelanguage": "fr", "voicegender": "male", "id": "7629fdab05ffe2bc183743b02004476c"}
+        try {
+            JSONObject json = new JSONObject(result);
+            boolean ok = false;
+
+            Object returnValue = json.get("return");
+
+            if (returnValue instanceof Boolean)
+            {
+                ok = (Boolean) returnValue;
+            }
+            else {
+                ok = "0".equals(returnValue.toString());
+            }
+
+            if (ok) {
+                Log.i(LOG_TAG, "Karotz TTS started");
+                return true;
+            }
+            Log.e(LOG_TAG, "Karotz TTS failed: " + json.optString("msg", "Unknown error"));
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, "Cannot parse TTS response: " + e.getMessage(), e);
+        }
+
+        return false;
+    }
+
+    /**
+     * Play a random mood.
+     * @return true if successful
+     * @throws IOException if network error
+     */
+    public boolean randomMood() throws IOException {
+        URL url = newAPIURL(api, "/apps/moods");
+        Log.d(LOG_TAG, url.toString());
+
+        String result = NetUtils.downloadUrl(url);
+        Log.d(LOG_TAG, result);
+
+        // Answer: {"moods":"259","return":"0"}
+        try {
+            JSONObject json = new JSONObject(result);
+            return "0".equals(json.optString("return", "1"));
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, "Cannot play random mood: " + e.getMessage(), e);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the list of radio stations from Karotz.
+     * @return JSON string with streams array, or null on error
+     * @throws IOException if network error
+     */
+    public String getRadiosList() throws IOException {
+        URL url = newAPIURL(api, "/radios_list");
+        Log.d(LOG_TAG, url.toString());
+
+        String result = NetUtils.downloadUrl(url);
+        Log.d(LOG_TAG, result);
+
+        return result;
+    }
     private final String hostname;
 
     private URL api = null;

@@ -122,11 +122,14 @@ public class NetUtils {
 
     // Reads an InputStream and converts it to a String.
     private static String readIt(InputStream stream, int len) throws IOException {
-        Reader reader = null;
-        reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-        char[] buffer = new char[len];
-        int count = reader.read(buffer);
-        return new String(buffer, 0, count);
+        Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder();
+        char[] buffer = new char[1024];
+        int count;
+        while ((count = reader.read(buffer)) != -1) {
+            sb.append(buffer, 0, count);
+        }
+        return sb.toString();
     }
 
 

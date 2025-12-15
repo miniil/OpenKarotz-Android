@@ -6,7 +6,9 @@
         <item>Radio</item>
         <item>Couleur</item>
         <item>Oreilles</item>
+        <item>TTS</item>
         <item>Karotz</item>
+        <item>A propos</item>
     </string-array>
 
 </resources>

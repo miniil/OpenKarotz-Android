@@ -6,7 +6,9 @@
         <item>Radio</item>
         <item>Color</item>
         <item>Ears</item>
+        <item>TTS</item>
         <item>Karotz</item>
+        <item>About</item>
     </string-array>
 
     <array name="pages_icons">
@@ -14,7 +16,9 @@
         <item>@drawable/ic_radio</item>
         <item>@drawable/ic_appearance</item>
         <item>@drawable/ic_karotz_ears_dark</item>
+        <item>@drawable/ic_tts</item>
         <item>@drawable/ic_system</item>
+        <item>@drawable/ic_about</item>
     </array>
 
 </resources>

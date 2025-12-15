@@ -28,219 +28,235 @@
 
 package com.github.wulfaz.android.openkarotz.fragment;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
-import androidx.viewpager.widget.ViewPager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.wulfaz.android.openkarotz.R;
 import com.github.wulfaz.android.openkarotz.activity.MainActivity;
-import com.github.wulfaz.android.openkarotz.adapter.RadioTabsPagerAdapter;
-import com.github.wulfaz.android.openkarotz.model.RadioGroupModel;
-import com.github.wulfaz.android.openkarotz.model.RadioModel;
-import com.github.wulfaz.android.openkarotz.util.AssetUtils;
+import com.github.wulfaz.android.openkarotz.karotz.Karotz;
+import com.github.wulfaz.android.openkarotz.karotz.OpenKarotz;
+import com.github.wulfaz.android.openkarotz.task.SoundAsyncTask;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Radio fragment.
+ * Radio fragment - loads radio stations from Karotz.
  */
 public class RadioFragment extends Fragment {
 
-    /**
-     * Initialize a new radio fragment.
-     */
+    private static final String LOG_TAG = RadioFragment.class.getSimpleName();
+
+    private RecyclerView recyclerView;
+    private ProgressBar progressBar;
+    private TextView textNoRadios;
+
+    private RadioAdapter adapter;
+    private List<RadioStation> radioStations = new ArrayList<>();
+
     public RadioFragment() {
-        // Nothing to initialize
-    }
-
-    /**
-     * Get the pager adapter.
-     * @return the pager adapter
-     */
-    public RadioTabsPagerAdapter getPagerAdapter() {
-        return pagerAdapter;
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        Log.v(LOG_TAG, "onActivityCreated");
-        super.onActivityCreated(savedInstanceState);
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        Log.v(LOG_TAG, "onAttach");
-        super.onAttach(activity);
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        Log.v(LOG_TAG, "onCreate");
-        radioGroups = loadRadios();
-
-        super.onCreate(savedInstanceState);
+        // Required empty constructor
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        Log.v(LOG_TAG, "onCreateView");
-
         // Fetch the selected page number
         int index = getArguments().getInt(MainActivity.ARG_PAGE_NUMBER);
-
-        // List of pages
         String[] pages = getResources().getStringArray(R.array.pages);
-
-        // Page title
         String pageTitle = pages[index];
         getActivity().setTitle(pageTitle);
 
-        // Action bar tab navigation
-        AppCompatActivity activity = (AppCompatActivity) getActivity();
-        if (activity != null) {
-            actionBar = activity.getSupportActionBar();
-            if (actionBar != null) {
-                actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-            }
-        }
-
         View view = inflater.inflate(R.layout.page_radio, container, false);
-
         initializeView(view);
-
-        Log.v(LOG_TAG, "onCreateView ... done");
         return view;
     }
 
     @Override
-    public void onDestroy() {
-        Log.v(LOG_TAG, "onDestroy");
-        super.onDestroy();
-    }
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
 
-    @Override
-    public void onDestroyView() {
-        Log.v(LOG_TAG, "onDestroyView");
-        super.onDestroyView();
-    }
-
-    @Override
-    public void onDetach() {
-        Log.v(LOG_TAG, "onDetach");
-        super.onDetach();
-    }
-
-    @Override
-    public void onPause() {
-        Log.v(LOG_TAG, "onPause");
-        super.onPause();
-        if (actionBar != null) {
-            actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
-        }
-    }
-
-    @Override
-    public void onResume() {
-        Log.v(LOG_TAG, "onResume");
-        super.onResume();
-        if (actionBar != null) {
-            actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+        if (savedInstanceState == null) {
+            loadRadioStations();
         }
     }
 
     private void initializeView(View view) {
-        Log.v(LOG_TAG, "Initializing radio fragment view");
+        progressBar = view.findViewById(R.id.progressBarRadio);
+        textNoRadios = view.findViewById(R.id.textNoRadios);
+        recyclerView = view.findViewById(R.id.recyclerViewRadios);
 
-        // View pager
-        Log.v(LOG_TAG, "Initializing view pager");
-        viewPager = view.findViewById(R.id.pagerRadio);
-
-        // Pager adapter
-        Log.v(LOG_TAG, "Initializing pager adapter");
-        // pagerAdapter = new RadioTabsPagerAdapter(getActivity().getSupportFragmentManager(), radioGroups);
-        pagerAdapter = new RadioTabsPagerAdapter(getActivity(), viewPager, radioGroups);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        adapter = new RadioAdapter();
+        recyclerView.setAdapter(adapter);
     }
 
-    private RadioGroupModel[] loadRadios() {
-        Log.d(LOG_TAG, "Loading radio list");
+    private void loadRadioStations() {
+        new LoadRadiosTask(getActivity()).execute();
+    }
 
-        RadioGroupModel[] radios = null;
+    // ==================== Radio Station Model ====================
 
-        try {
-            JSONObject json = AssetUtils.loadJsonFromAsset(getActivity(), "radios.json");
-            JSONArray list = json.getJSONArray("radios");
+    private static class RadioStation {
+        int id;
+        String name;
+        String url;
 
-            int count = list.length();
-            radios = new RadioGroupModel[count];
+        RadioStation(int id, String name, String url) {
+            this.id = id;
+            this.name = name;
+            this.url = url;
+        }
+    }
 
-            for (int i = 0; i < count; i++) {
-                JSONObject element = list.getJSONObject(i);
-                RadioGroupModel group = loadRadioGroup(element);
-                if (group != null) {
-                    Log.v(LOG_TAG, "Loaded radio group: " + group.getName());
-                    radios[i] = group;
+    // ==================== RecyclerView Adapter ====================
+
+    private class RadioAdapter extends RecyclerView.Adapter<RadioAdapter.ViewHolder> {
+
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_radio, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            RadioStation station = radioStations.get(position);
+            holder.bind(station);
+        }
+
+        @Override
+        public int getItemCount() {
+            return radioStations.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView textName;
+            ImageButton buttonPlay;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                textName = itemView.findViewById(R.id.textRadioName);
+                buttonPlay = itemView.findViewById(R.id.buttonPlayRadio);
+            }
+
+            void bind(RadioStation station) {
+                textName.setText(station.name);
+
+                // Click on row or play button
+                View.OnClickListener playListener = v -> playRadio(station);
+                itemView.setOnClickListener(playListener);
+                buttonPlay.setOnClickListener(playListener);
+            }
+        }
+    }
+
+    // ==================== Play Radio ====================
+
+    private void playRadio(RadioStation station) {
+        Log.d(LOG_TAG, "Playing radio: " + station.name + " - " + station.url);
+        new PlayRadioTask(getActivity(), station.url, station.name).execute();
+    }
+
+    private class PlayRadioTask extends SoundAsyncTask {
+        private final String name;
+
+        public PlayRadioTask(Activity activity, String url, String name) {
+            super(activity, url);
+            this.name = name;
+        }
+
+        @Override
+        public void onPostExecute(Object result) {
+            super.onPostExecute(result);
+
+            if (getActivity() != null && !getActivity().isFinishing()) {
+                Toast.makeText(getActivity(),
+                        getString(R.string.radio_starting) + " " + name,
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // ==================== Load Radios Task ====================
+
+    private class LoadRadiosTask extends AsyncTask<Void, Void, List<RadioStation>> {
+        private final Activity activity;
+
+        LoadRadiosTask(Activity activity) {
+            this.activity = activity;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            progressBar.setVisibility(View.VISIBLE);
+            textNoRadios.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.GONE);
+        }
+
+        @Override
+        protected List<RadioStation> doInBackground(Void... params) {
+            List<RadioStation> stations = new ArrayList<>();
+
+            try {
+                OpenKarotz karotz = (OpenKarotz) Karotz.getInstance();
+                if (karotz != null) {
+                    String json = karotz.getRadiosList();
+                    if (json != null) {
+                        JSONObject response = new JSONObject(json);
+
+                        if ("0".equals(response.optString("return", "1"))) {
+                            JSONArray streams = response.getJSONArray("streams");
+
+                            for (int i = 0; i < streams.length(); i++) {
+                                JSONObject stream = streams.getJSONObject(i);
+                                int id = stream.getInt("id");
+                                String name = stream.getString("name");
+                                String url = stream.getString("url");
+                                stations.add(new RadioStation(id, name, url));
+                            }
+                        }
+                    }
                 }
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Error loading radios: " + e.getMessage(), e);
             }
 
-            Log.i(LOG_TAG, "Using radio list from asset radios.json");
-
-        } catch (JSONException e) {
-            Log.e(LOG_TAG, "Could not parse JSON content: " + e.getMessage(), e);
+            return stations;
         }
 
-        return radios;
-    }
+        @Override
+        protected void onPostExecute(List<RadioStation> stations) {
+            progressBar.setVisibility(View.GONE);
 
-    /**
-     * Load a radio group.
-     * @param json the JSON object containing the radio group definition
-     * @return the radio group
-     */
-    private static RadioGroupModel loadRadioGroup(JSONObject json) {
+            if (activity == null || activity.isFinishing()) return;
 
-        RadioGroupModel group = null;
-        try {
-            String groupId = json.getString("id");
-            String groupName = json.getString("name");
-            Log.d(LOG_TAG, "Loading radio group: " + groupName);
+            radioStations.clear();
+            radioStations.addAll(stations);
+            adapter.notifyDataSetChanged();
 
-            group = new RadioGroupModel(groupId, groupName);
-
-            JSONArray list = json.getJSONArray("radios");
-
-            int count = list.length();
-            for (int i = 0; i < count; i++) {
-                JSONObject element = list.getJSONObject(i);
-                String id = element.getString("id");
-                String name = element.getString("name");
-                String url = element.getString("url");
-
-                // Log.v(LOG_TAG, "Adding radio " + name + " to group " + group.getName());
-                group.addRadio(new RadioModel(id, name, url));
+            if (stations.isEmpty()) {
+                textNoRadios.setVisibility(View.VISIBLE);
+                recyclerView.setVisibility(View.GONE);
+            } else {
+                textNoRadios.setVisibility(View.GONE);
+                recyclerView.setVisibility(View.VISIBLE);
             }
-
-        } catch (JSONException e) {
-            Log.e(LOG_TAG, "Could not parse JSON content: " + e.getMessage(), e);
         }
-
-        return group;
     }
-
-
-    private ViewPager viewPager = null;
-    private RadioTabsPagerAdapter pagerAdapter = null;
-    private ActionBar actionBar = null;
-
-    private RadioGroupModel[] radioGroups = null;
-
-    private static final String LOG_TAG = RadioFragment.class.getSimpleName();
 }

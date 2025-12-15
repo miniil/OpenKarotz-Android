@@ -50,19 +50,25 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.github.wulfaz.android.openkarotz.R;
 import com.github.wulfaz.android.openkarotz.adapter.DrawerListAdapter;
+import com.github.wulfaz.android.openkarotz.database.KarotzDevice;
+import com.github.wulfaz.android.openkarotz.fragment.AboutFragment;
 import com.github.wulfaz.android.openkarotz.fragment.ColorFragment;
 import com.github.wulfaz.android.openkarotz.fragment.EarsFragment;
 import com.github.wulfaz.android.openkarotz.fragment.HomeFragment;
 import com.github.wulfaz.android.openkarotz.fragment.RadioFragment;
 import com.github.wulfaz.android.openkarotz.fragment.SystemFragment;
+import com.github.wulfaz.android.openkarotz.fragment.TtsFragment;
 import com.github.wulfaz.android.openkarotz.karotz.IKarotz.KarotzStatus;
 import com.github.wulfaz.android.openkarotz.karotz.IKarotz.SoundControlCommand;
 import com.github.wulfaz.android.openkarotz.karotz.Karotz;
@@ -70,6 +76,7 @@ import com.github.wulfaz.android.openkarotz.model.DrawerItem;
 import com.github.wulfaz.android.openkarotz.net.NetUtils;
 import com.github.wulfaz.android.openkarotz.task.GetStatusAsyncTask;
 import com.github.wulfaz.android.openkarotz.task.SoundControlAsyncTask;
+import com.github.wulfaz.android.openkarotz.viewmodel.DeviceManagementViewModel;
 
 /**
  * Main activity.
@@ -112,9 +119,6 @@ public class MainActivity extends AppCompatActivity {
         } else if (itemId == R.id.action_settings) {
             doActionSettings();
             return true;
-        } else if (itemId == R.id.action_about) {
-            doActionAbout();
-            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -128,7 +132,6 @@ public class MainActivity extends AppCompatActivity {
         menu.findItem(R.id.action_sound_stop).setVisible(!drawerOpen);
         menu.findItem(R.id.action_manage_devices).setVisible(!drawerOpen);
         menu.findItem(R.id.action_settings).setVisible(!drawerOpen);
-        menu.findItem(R.id.action_about).setVisible(!drawerOpen);
 
         return super.onPrepareOptionsMenu(menu);
     }
@@ -160,6 +163,13 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Mode immersif moderne
+        WindowInsetsController controller = getWindow().getInsetsController();
+        if (controller != null) {
+            controller.hide(WindowInsets.Type.navigationBars());
+            controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        }
 
         // This callback will only be called when MyFragment is at least Started.
         OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled by default */) {
@@ -215,10 +225,6 @@ public class MainActivity extends AppCompatActivity {
 
                 // Set up Karotz instance
                 initializeKarotz();
-
-                GetStatusTask task = new GetStatusTask(this);
-                task.execute();
-
             } else {
                 Toast.makeText(MainActivity.this, getString(R.string.err_no_connection), Toast.LENGTH_LONG).show();
             }
@@ -283,6 +289,16 @@ public class MainActivity extends AppCompatActivity {
         return earsFragment;
     }
 
+    private Fragment getTtsFragment() {
+        if (ttsFragment == null) {
+            ttsFragment = new TtsFragment();
+            Bundle args = new Bundle();
+            args.putInt(ARG_PAGE_NUMBER, PAGE_TTS);
+            ttsFragment.setArguments(args);
+        }
+        return ttsFragment;
+    }
+
     private Fragment getHomeFragment() {
         if (homeFragment == null) {
             homeFragment = new HomeFragment();
@@ -326,6 +342,16 @@ public class MainActivity extends AppCompatActivity {
             systemFragment.setArguments(args);
         }
         return systemFragment;
+    }
+
+    private Fragment getAboutFragment() {
+        if (aboutFragment == null) {
+            aboutFragment = new AboutFragment();
+            Bundle args = new Bundle();
+            args.putInt(ARG_PAGE_NUMBER, PAGE_ABOUT);
+            aboutFragment.setArguments(args);
+        }
+        return aboutFragment;
     }
 
     private String getVersion() {
@@ -397,13 +423,40 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeKarotz() {
         Log.d(LOG_TAG, "Initializing Karotz...");
-        String hostname = getPrefKarotzHost();
-        if (hostname == null) {
-            Log.d(LOG_TAG, "Preference Karotz Host not set");
-            doActionSettings();
-        }
 
-        Karotz.initialize(hostname);
+        // TRY DeviceManagement (nouveau système)
+        try {
+            DeviceManagementViewModel viewModel = new ViewModelProvider(this).get(DeviceManagementViewModel.class);
+            viewModel.getDefaultDevice().observe(this, device -> {
+                if (device != null) {
+                    Karotz.initialize(device.getHostname());
+                    GetStatusTask task = new GetStatusTask(this);
+                    task.execute();
+                } else {
+                    // No default device try old
+                    fallbackToLegacyInit();
+                }
+            });
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error with DeviceManagement: " + e.getMessage());
+            fallbackToLegacyInit();
+        }
+    }
+
+    private void fallbackToLegacyInit() {
+        try {
+            String hostname = getPrefKarotzHost();
+            if (hostname == null) {
+                Log.d(LOG_TAG, "No Karotz configured");
+                doActionManageDevices();
+                return;
+            }
+            Karotz.initialize(hostname);
+            GetStatusTask task = new GetStatusTask(this);
+            task.execute();
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error fallbacktoLegacyInit : " + e.getMessage());
+        }
     }
 
     private void selectDrawerItem(int position) {
@@ -447,9 +500,23 @@ public class MainActivity extends AppCompatActivity {
             allowBack = true;
             break;
 
+        case PAGE_TTS:
+            if (fragment == null) {
+                fragment = getTtsFragment();
+            }
+            allowBack = true;
+            break;
+
         case PAGE_SYSTEM:
             if (fragment == null) {
                 fragment = getSystemFragment();
+            }
+            allowBack = true;
+            break;
+
+        case PAGE_ABOUT:
+            if (fragment == null) {
+                fragment = getAboutFragment();
             }
             allowBack = true;
             break;
@@ -596,7 +663,9 @@ public class MainActivity extends AppCompatActivity {
     private Fragment radioFragment;
     private Fragment colorFragment;
     private Fragment earsFragment;
+    private Fragment ttsFragment;
     private Fragment systemFragment;
+    private Fragment aboutFragment;
 
     // Activity settings
     private static final int RESULT_SETTINGS = 1;
@@ -616,7 +685,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int PAGE_RADIO = 1;
     private static final int PAGE_COLOR = 2;
     private static final int PAGE_EARS = 3;
-    private static final int PAGE_SYSTEM = 4;
+    private static final int PAGE_TTS = 4;
+    private static final int PAGE_SYSTEM = 5;
+
+    private static final int PAGE_ABOUT = 6;
 
     // Log tag
     private static final String LOG_TAG = MainActivity.class.getSimpleName();

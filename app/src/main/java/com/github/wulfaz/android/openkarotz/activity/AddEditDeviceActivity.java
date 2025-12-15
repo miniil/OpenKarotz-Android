@@ -41,6 +41,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.github.wulfaz.android.openkarotz.R;
 import com.github.wulfaz.android.openkarotz.database.KarotzDevice;
+import com.github.wulfaz.android.openkarotz.karotz.OpenKarotz;
 import com.github.wulfaz.android.openkarotz.viewmodel.DeviceManagementViewModel;
 
 /**
@@ -217,10 +218,21 @@ public class AddEditDeviceActivity extends AppCompatActivity {
         String host = editTextHost.getText().toString().trim();
         int port = Integer.parseInt(editTextPort.getText().toString().trim());
 
-        // TODO: Implement actual connection test
+
+        // TEST CONNECTION
         Toast.makeText(this, "Testing connection to " + host + ":" + port + "...", Toast.LENGTH_SHORT).show();
-        
-        // For now, just show a placeholder message
-        Toast.makeText(this, "Connection test not yet implemented", Toast.LENGTH_SHORT).show();
+
+        new Thread(() -> {
+                OpenKarotz k = new OpenKarotz(host);
+                boolean result = k.isOnline();
+
+                runOnUiThread(() -> {
+                    if (result) {
+                        Toast.makeText(this, "Connection is OK.", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, "Test connection failed.", Toast.LENGTH_LONG).show();
+                    }
+                });
+        }).start();
     }
 }
